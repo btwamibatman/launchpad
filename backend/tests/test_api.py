@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_health_and_meta(client):
     assert client.get("/api/health").json()["status"] == "ok"
     meta = client.get("/api/meta").json()
@@ -25,6 +28,33 @@ def test_items_crud(client):
 def test_items_validation(client):
     assert client.post("/api/items", json={"title": ""}).status_code == 422
     assert client.post("/api/items", json={"title": "a", "status": "nope"}).status_code == 422
+
+
+@pytest.mark.parametrize("field", ["title", "description", "status"])
+def test_items_patch_rejects_null_without_changing_item(client, field):
+    original = {"title": "Demo", "description": "Keep me", "status": "todo"}
+    item_id = client.post("/api/items", json=original).json()["id"]
+
+    response = client.patch(f"/api/items/{item_id}", json={field: None})
+    assert response.status_code == 422
+    assert any(error["loc"] == ["body", field] for error in response.json()["detail"])
+    stored = client.get(f"/api/items/{item_id}").json()
+    assert {key: stored[key] for key in original} == original
+
+
+def test_items_patch_allows_omitted_fields_and_empty_description(client):
+    original = {"title": "Demo", "description": "Clear me", "status": "in_progress"}
+    item_id = client.post("/api/items", json=original).json()["id"]
+
+    unchanged = client.patch(f"/api/items/{item_id}", json={})
+    assert unchanged.status_code == 200
+    assert {key: unchanged.json()[key] for key in original} == original
+
+    updated = client.patch(f"/api/items/{item_id}", json={"description": ""})
+    assert updated.status_code == 200
+    assert updated.json()["description"] == ""
+    assert updated.json()["title"] == original["title"]
+    assert updated.json()["status"] == original["status"]
 
 
 def test_auth_flow(client):
