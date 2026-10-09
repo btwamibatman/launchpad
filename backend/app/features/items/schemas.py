@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ItemStatus = Literal["todo", "in_progress", "done"]
 
@@ -15,11 +15,18 @@ class ItemCreate(BaseModel):
 
 
 class ItemUpdate(BaseModel):
-    """PATCH: все поля необязательные, обновляются только переданные."""
+    """PATCH: поля можно пропустить, но переданные значения не могут быть null."""
 
     title: str | None = Field(default=None, min_length=1, max_length=200)
     description: str | None = None
     status: ItemStatus | None = None
+
+    @field_validator("title", "description", "status")
+    @classmethod
+    def reject_null(cls, value: str | None) -> str:
+        if value is None:
+            raise ValueError("Field cannot be null")
+        return value
 
 
 class ItemRead(BaseModel):
