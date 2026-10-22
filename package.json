@@ -2,7 +2,7 @@
   "name": "launchpad",
   "version": "0.1.0",
   "private": true,
-  "description": "FastAPI + React fullstack starter for 1–2 day hackathons",
+  "description": "Reusable FastAPI + Vue 3 fullstack project template",
   "engines": {
     "node": ">=20.19"
   },
